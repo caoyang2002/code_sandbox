@@ -4,7 +4,7 @@ import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.io.resource.ResourceUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.dfa.WordTree;
-import sspu.zzx.codesandbox.CodeSandbox;
+import sspu.zzx.codesandbox.service.CodeSandbox;
 import sspu.zzx.codesandbox.model.ExecuteCodeRequest;
 import sspu.zzx.codesandbox.model.ExecuteCodeResponse;
 import sspu.zzx.codesandbox.model.ExecuteMessage;

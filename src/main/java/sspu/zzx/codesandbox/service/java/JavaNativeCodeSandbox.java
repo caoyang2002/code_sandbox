@@ -1,4 +1,4 @@
-package sspu.zzx.codesandbox;
+package sspu.zzx.codesandbox.service.java;
 
 import sspu.zzx.codesandbox.model.ExecuteCodeRequest;
 import sspu.zzx.codesandbox.model.ExecuteCodeResponse;

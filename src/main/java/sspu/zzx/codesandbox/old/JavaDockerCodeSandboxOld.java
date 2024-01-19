@@ -10,7 +10,7 @@ import com.github.dockerjava.api.command.*;
 import com.github.dockerjava.api.model.*;
 import com.github.dockerjava.core.DockerClientBuilder;
 import com.github.dockerjava.core.command.ExecStartResultCallback;
-import sspu.zzx.codesandbox.CodeSandbox;
+import sspu.zzx.codesandbox.service.CodeSandbox;
 import sspu.zzx.codesandbox.model.ExecuteCodeRequest;
 import sspu.zzx.codesandbox.model.ExecuteCodeResponse;
 import sspu.zzx.codesandbox.model.ExecuteMessage;

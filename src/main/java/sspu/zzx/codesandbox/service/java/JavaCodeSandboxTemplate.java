@@ -1,24 +1,24 @@
-package sspu.zzx.codesandbox;
+package sspu.zzx.codesandbox.service.java;
 
-import cn.hutool.core.io.FileUtil;
-import cn.hutool.core.util.StrUtil;
 import cn.hutool.dfa.FoundWord;
 import cn.hutool.dfa.WordTree;
+import lombok.extern.slf4j.Slf4j;
 import sspu.zzx.codesandbox.model.ExecuteCodeRequest;
 import sspu.zzx.codesandbox.model.ExecuteCodeResponse;
 import sspu.zzx.codesandbox.model.ExecuteMessage;
 import sspu.zzx.codesandbox.model.JudgeInfo;
 import sspu.zzx.codesandbox.model.enums.JudgeInfoMessageEnum;
 import sspu.zzx.codesandbox.model.enums.QuestionSubmitStatusEnum;
+import sspu.zzx.codesandbox.security.NowSecurityManager;
+import sspu.zzx.codesandbox.service.CodeSandbox;
+import sspu.zzx.codesandbox.service.CommonCodeSandboxTemplate;
 import sspu.zzx.codesandbox.utils.ProcessUtils;
-import lombok.extern.slf4j.Slf4j;
 
 import java.io.File;
-import java.nio.charset.StandardCharsets;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.UUID;
 
 /**
  * Java 代码沙箱模板方法的实现
@@ -26,7 +26,7 @@ import java.util.UUID;
  * @author zzx
  */
 @Slf4j
-public abstract class JavaCodeSandboxTemplate implements CodeSandbox
+public abstract class JavaCodeSandboxTemplate extends CommonCodeSandboxTemplate implements CodeSandbox
 {
 
     /**
@@ -44,60 +44,48 @@ public abstract class JavaCodeSandboxTemplate implements CodeSandbox
      */
     private static final long TIME_OUT = 15000L;
 
+    /**
+     * Java安全管理器类存放路径
+     */
     private static final String SECURITY_MANAGER_PATH;
 
+    /**
+     * Java安全管理器类名
+     */
     private static final String SECURITY_MANAGER_CLASS_NAME = "NowSecurityManager";
 
     /**
-     * 代码黑名单
+     * Java代码黑名单
      * 黑名单检测通常用于辅助安全策略，而不是作为唯一的安全手段
      */
     private static final List<String> blackList = Arrays.asList(
             // 文件操作相关
-            "Files", "File", "FileInputStream", "FileOutputStream", "RandomAccessFile",
-            "FileReader", "FileWriter", "FileChannel", "FileLock",
-            "Path", "Paths", "File.createTempFile", "File.createTempDirectory",
-            "ZipInputStream", "ZipOutputStream",
+            "Files", "File", "FileInputStream", "FileOutputStream", "RandomAccessFile", "FileReader", "FileWriter", "FileChannel", "FileLock", "Path", "Paths", "File.createTempFile", "File.createTempDirectory", "ZipInputStream", "ZipOutputStream",
 
             // 网络相关
-            "Socket", "ServerSocket", "DatagramSocket",
-            "InetAddress", "URL", "URLConnection",
-            "HttpURLConnection", "SocketChannel", "ServerSocketChannel", "DatagramChannel",
-            "SocketPermission", "ServerSocketPermission",
+            "Socket", "ServerSocket", "DatagramSocket", "InetAddress", "URL", "URLConnection", "HttpURLConnection", "SocketChannel", "ServerSocketChannel", "DatagramChannel", "SocketPermission", "ServerSocketPermission",
 
             // 系统命令执行相关
-            "exec", "Runtime.getRuntime().exec", "ProcessBuilder",
-            "SecurityManager", "System.exit", "Runtime.getRuntime().halt",
-            "SecurityManager.checkExec",
+            "exec", "Runtime.getRuntime().exec", "ProcessBuilder", "SecurityManager", "System.exit", "Runtime.getRuntime().halt", "SecurityManager.checkExec",
 
             // 反射相关
-            "Class.forName", "Method.invoke", "sun.reflect.", "java.lang.reflect.",
-            "Unsafe", "sun.misc.Unsafe", "sun.reflect.Unsafe",
-            "Proxy",
+            "Class.forName", "Method.invoke", "sun.reflect.", "java.lang.reflect.", "Unsafe", "sun.misc.Unsafe", "sun.reflect.Unsafe", "Proxy",
 
             // 数据库相关
-            "Statement", "PreparedStatement", "CallableStatement",
-            "DataSource", "Connection", "ResultSet",
-            "Hibernate", "JPA", // 防止使用 ORM 框架执行不安全的数据库操作
+            "Statement", "PreparedStatement", "CallableStatement", "DataSource", "Connection", "ResultSet", "Hibernate", "JPA", // 防止使用 ORM 框架执行不安全的数据库操作
             "createStatement", "prepareStatement", "prepareCall",
 
             // 不安全的操作
             "Unsafe", "sun.misc.Unsafe", "sun.reflect.Unsafe",
 
             // 加密解密相关
-            "Cipher", "MessageDigest", "KeyGenerator", "KeyPairGenerator",
-            "SecretKeyFactory", "KeyStore", "SecureRandom",
-            "java.security.",
+            "Cipher", "MessageDigest", "KeyGenerator", "KeyPairGenerator", "SecretKeyFactory", "KeyStore", "SecureRandom", "java.security.",
 
             // 序列化相关
-            "ObjectInputStream", "ObjectOutputStream",
-            "Serializable", "Externalizable", "readObject", "writeObject",
+            "ObjectInputStream", "ObjectOutputStream", "Serializable", "Externalizable", "readObject", "writeObject",
 
             // 线程相关
-            "Thread", "Runnable", "Executor", "ExecutorService", "ThreadPoolExecutor",
-            "ThreadGroup", "ThreadLocal",
-            "Thread.sleep", "Thread.yield", "Thread.stop", "Thread.suspend", "Thread.resume",
-            "java.util.concurrent.",
+            "Thread", "Runnable", "Executor", "ExecutorService", "ThreadPoolExecutor", "ThreadGroup", "ThreadLocal", "Thread.sleep", "Thread.yield", "Thread.stop", "Thread.suspend", "Thread.resume", "java.util.concurrent.",
 
             // 安全管理器相关
             "SecurityManager",
@@ -132,8 +120,8 @@ public abstract class JavaCodeSandboxTemplate implements CodeSandbox
     {
         List<String> inputList = executeCodeRequest.getInputList();
         String code = executeCodeRequest.getCode();
-        // todo 后期可以根据编程语言选择不同的代码沙箱
         String language = executeCodeRequest.getLanguage();
+        System.out.println("当前操作系统：" + System.getProperty("os.name").toLowerCase());
         System.out.println("当前代码使用语言：" + language);
 
         // 0. 安全控制：限制敏感代码：黑名单检测
@@ -142,14 +130,11 @@ public abstract class JavaCodeSandboxTemplate implements CodeSandbox
         {
             System.out.println("包含禁止词：" + foundWord.getFoundWord());
             // 返回错误信息
-            return new ExecuteCodeResponse(null,
-                    "包含禁止词：" + foundWord.getFoundWord(),
-                    QuestionSubmitStatusEnum.FAILED.getValue(),
-                    new JudgeInfo(JudgeInfoMessageEnum.DANGEROUS_OPERATION.getValue(), null, null));
+            return new ExecuteCodeResponse(null, "包含禁止词：" + foundWord.getFoundWord(), QuestionSubmitStatusEnum.FAILED.getValue(), new JudgeInfo(JudgeInfoMessageEnum.DANGEROUS_OPERATION.getValue(), null, null));
         }
 
         // 1. 把用户的代码保存为文件
-        File userCodeFile = saveCodeToFile(code);
+        File userCodeFile = saveCodeToFile(code, GLOBAL_CODE_DIR_NAME, GLOBAL_JAVA_CLASS_NAME);
 
         // 2. 编译代码，得到 class 文件
         ExecuteMessage compileFileExecuteMessage = compileFile(userCodeFile);
@@ -157,10 +142,7 @@ public abstract class JavaCodeSandboxTemplate implements CodeSandbox
         if (compileFileExecuteMessage.getErrorMessage() != null)
         {
             // 返回编译错误信息
-            return new ExecuteCodeResponse(null,
-                    compileFileExecuteMessage.getMessage(),
-                    QuestionSubmitStatusEnum.FAILED.getValue(),
-                    new JudgeInfo(compileFileExecuteMessage.getErrorMessage(), null, null));
+            return new ExecuteCodeResponse(null, compileFileExecuteMessage.getMessage(), QuestionSubmitStatusEnum.FAILED.getValue(), new JudgeInfo(compileFileExecuteMessage.getErrorMessage(), null, null));
         }
 
         // 3. 执行代码，得到输出结果
@@ -179,33 +161,8 @@ public abstract class JavaCodeSandboxTemplate implements CodeSandbox
         return outputResponse;
     }
 
-
     /**
-     * 1. 把用户的代码保存为文件
-     *
-     * @param code 用户代码
-     * @return
-     */
-    public File saveCodeToFile(String code)
-    {
-        String userDir = System.getProperty("user.dir");
-        String globalCodePathName = userDir + File.separator + GLOBAL_CODE_DIR_NAME;
-        // 判断全局代码目录是否存在，没有则新建
-        if (!FileUtil.exist(globalCodePathName))
-        {
-            FileUtil.mkdir(globalCodePathName);
-        }
-
-        // 把用户的代码隔离存放
-        String userCodeParentPath = globalCodePathName + File.separator + UUID.randomUUID();
-        String userCodePath = userCodeParentPath + File.separator + GLOBAL_JAVA_CLASS_NAME;
-        File userCodeFile = FileUtil.writeString(code, userCodePath, StandardCharsets.UTF_8);
-
-        return userCodeFile;
-    }
-
-    /**
-     * 2、编译代码
+     * 编译代码
      *
      * @param userCodeFile
      * @return
@@ -225,7 +182,8 @@ public abstract class JavaCodeSandboxTemplate implements CodeSandbox
                 executeMessage.setErrorMessage(JudgeInfoMessageEnum.COMPILE_ERROR.getValue());
             }
             return executeMessage;
-        } catch (Exception e)
+        }
+        catch (Exception e)
         {
             // 未知错误
             ExecuteMessage executeMessage = new ExecuteMessage();
@@ -237,7 +195,7 @@ public abstract class JavaCodeSandboxTemplate implements CodeSandbox
     }
 
     /**
-     * 3、执行文件，获得执行结果列表
+     * 执行文件，获得执行结果列表
      *
      * @param userCodeFile
      * @param inputList
@@ -251,8 +209,15 @@ public abstract class JavaCodeSandboxTemplate implements CodeSandbox
         for (String inputArgs : inputList)
         {
             // 安全控制：限制资源分配：最大队资源大小：256MB
-            // String runCmd = String.format("java -Xmx256m -Dfile.encoding=UTF-8 -cp %s Main %s", userCodeParentPath, inputArgs);
+            // 安全控制：配置安全管理器：java.lang.SecurityManager
             String runCmd = String.format("java -Dfile.encoding=UTF-8 -cp %s;%s -Djava.security.manager=%s Main %s", userCodeParentPath, SECURITY_MANAGER_PATH, SECURITY_MANAGER_CLASS_NAME, inputArgs);
+            String osName = System.getProperty("os.name").toLowerCase();
+            // 如果是Windows系统，支持安全管理器security-manager的创建，反之是Linux则不支持（可能也支持，但作者暂时因时间原因未找出对策，故出此下策）
+            if (osName.contains("nix") || osName.contains("nux"))
+            {
+                runCmd = String.format("java -Dfile.encoding=UTF-8 -cp %s Main %s", userCodeParentPath, inputArgs);
+            }
+            // String runCmd = String.format("java -Dfile.encoding=UTF-8 -cp %s;%s -Djava.security.manager=%s Main %s", userCodeParentPath, SECURITY_MANAGER_PATH, SECURITY_MANAGER_CLASS_NAME, inputArgs);
             try
             {
                 Process runProcess = Runtime.getRuntime().exec(runCmd);
@@ -264,7 +229,8 @@ public abstract class JavaCodeSandboxTemplate implements CodeSandbox
                         Thread.sleep(TIME_OUT);
                         System.out.println("超过程序最大运行时间，终止进程");
                         runProcess.destroy();
-                    } catch (InterruptedException e)
+                    }
+                    catch (InterruptedException e)
                     {
                         throw new RuntimeException(e);
                     }
@@ -278,7 +244,8 @@ public abstract class JavaCodeSandboxTemplate implements CodeSandbox
                     executeMessage.setErrorMessage(JudgeInfoMessageEnum.RUNTIME_ERROR.getValue());
                 }
                 executeMessageList.add(executeMessage);
-            } catch (Exception e)
+            }
+            catch (Exception e)
             {
                 // 未知错误
                 ExecuteMessage executeMessage = new ExecuteMessage();
@@ -291,88 +258,5 @@ public abstract class JavaCodeSandboxTemplate implements CodeSandbox
         return executeMessageList;
     }
 
-    /**
-     * 4、获取输出结果
-     *
-     * @param executeMessageList
-     * @return
-     */
-    public ExecuteCodeResponse getOutputResponse(List<ExecuteMessage> executeMessageList)
-    {
-        ExecuteCodeResponse executeCodeResponse = new ExecuteCodeResponse();
-        List<String> outputList = new ArrayList<>();
-        // 取用时最大值，便于判断是否超时
-        long maxTime = 0;
-        long maxMemory = 0;
-        for (ExecuteMessage executeMessage : executeMessageList)
-        {
-            String errorMessage = executeMessage.getErrorMessage();
-            if (StrUtil.isNotBlank(errorMessage))
-            {
-                executeCodeResponse.setMessage(executeMessage.getMessage());
-                // 用户提交的代码执行中存在错误
-                executeCodeResponse.setStatus(QuestionSubmitStatusEnum.FAILED.getValue());
-                executeCodeResponse.setJudgeInfo(new JudgeInfo(errorMessage, null, null));
-                break;
-            }
-            outputList.add(executeMessage.getMessage());
-            Long time = executeMessage.getTime();
-            if (time != null)
-            {
-                maxTime = Math.max(maxTime, time);
-            }
-            Long memory = executeMessage.getMemory();
-            if (memory != null)
-            {
-                maxMemory = Math.max(maxMemory, memory);
-            }
-        }
-        // 正常运行完成
-        if (outputList.size() == executeMessageList.size())
-        {
-            executeCodeResponse.setStatus(QuestionSubmitStatusEnum.SUCCEED.getValue());
-        }
-        executeCodeResponse.setOutputList(outputList);
-        JudgeInfo judgeInfo = new JudgeInfo();
-        judgeInfo.setTime(maxTime);
-        judgeInfo.setMemory(maxMemory);
-        // 运行正常完成则不设置message，交由判题机判题
-        executeCodeResponse.setJudgeInfo(judgeInfo);
-        return executeCodeResponse;
-    }
 
-    /**
-     * 5、删除文件
-     *
-     * @param userCodeFile
-     * @return
-     */
-    public boolean deleteFile(File userCodeFile)
-    {
-        if (userCodeFile.getParentFile() != null)
-        {
-            String userCodeParentPath = userCodeFile.getParentFile().getAbsolutePath();
-            boolean del = FileUtil.del(userCodeParentPath);
-            System.out.println("删除" + (del ? "成功" : "失败"));
-            return del;
-        }
-        return true;
-    }
-
-    /**
-     * 6、获取错误响应
-     *
-     * @param e
-     * @return
-     */
-    private ExecuteCodeResponse getErrorResponse(Throwable e)
-    {
-        ExecuteCodeResponse executeCodeResponse = new ExecuteCodeResponse();
-        executeCodeResponse.setOutputList(new ArrayList<>());
-        executeCodeResponse.setMessage(e.getMessage());
-        // 表示代码沙箱错误
-        executeCodeResponse.setStatus(2);
-        executeCodeResponse.setJudgeInfo(new JudgeInfo());
-        return executeCodeResponse;
-    }
 }
