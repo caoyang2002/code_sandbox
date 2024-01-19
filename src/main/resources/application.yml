@@ -1,2 +1,14 @@
 server:
   port: 8090
+
+# 公共配置文件
+spring:
+  application:
+    name: SSPU-OJ
+
+  banner:
+    location: static/banner.txt
+  # 支持 swagger3
+  mvc:
+    pathmatch:
+      matching-strategy: ant_path_matcher

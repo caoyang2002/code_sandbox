@@ -60,7 +60,8 @@ public class MainController
                 "目前我支持的语言有"+SupportLanguageEnum.getValues()+"\n"+
                 "如果对您有帮助，欢迎来我主页点个关注~\n" +
                 "作者Gitee："+"https://gitee.com/crzzx"+
-                "\n作者B站主页："+"https://space.bilibili.com/1198127286?spm_id_from=333.788.0.0";
+                "\n作者B站主页："+"https://space.bilibili.com/1198127286?spm_id_from=333.788.0.0"+"\n"+
+                "PS：本项目原始代码源于【程序员鱼皮】，再次特别鸣谢~";
     }
 
     /**
