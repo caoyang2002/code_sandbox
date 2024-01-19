@@ -47,9 +47,9 @@ public abstract class Python3CodeSandboxTemplate extends CommonCodeSandboxTempla
     private static final long TIME_OUT = 15000L;
 
     /**
-     * 设置Python最大可用内存为256MB
+     * 设置Python最大可用内存为128MB
      */
-    private static final String MEMORY_LIMIT_PREFIX_CODE = "import resource;max_memory = 256;resource.setrlimit(resource.RLIMIT_AS, (max_memory * (1024 ** 2), -1));";
+    private static final String MEMORY_LIMIT_PREFIX_CODE = "import resource;max_memory = 128;resource.setrlimit(resource.RLIMIT_AS, (max_memory * (1024 ** 2), -1));";
 
     /**
      * Python代码黑名单
@@ -208,7 +208,7 @@ public abstract class Python3CodeSandboxTemplate extends CommonCodeSandboxTempla
             return new ExecuteCodeResponse(null, "包含禁止词：" + foundWord.getFoundWord(), QuestionSubmitStatusEnum.FAILED.getValue(), new JudgeInfo(JudgeInfoMessageEnum.DANGEROUS_OPERATION.getValue(), null, null));
         }
 
-        // 安全控制：限制资源分配：最大队资源大小：256MB
+        // 安全控制：限制资源分配：最大队资源大小：128MB
         // 判断所处的操作系统，如果是Windows系统，则无法使用resource的Python库和限制内存大小，因此不建议在Windows系统上运行代码。
         String osName = System.getProperty("os.name").toLowerCase();
         if (osName.contains("nix") || osName.contains("nux"))

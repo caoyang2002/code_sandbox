@@ -208,14 +208,14 @@ public abstract class JavaCodeSandboxTemplate extends CommonCodeSandboxTemplate 
         List<ExecuteMessage> executeMessageList = new ArrayList<>();
         for (String inputArgs : inputList)
         {
-            // 安全控制：限制资源分配：最大队资源大小：256MB
+            // 安全控制：限制资源分配：最大队资源大小：128MB
             // 安全控制：配置安全管理器：java.lang.SecurityManager
-            String runCmd = String.format("java -Dfile.encoding=UTF-8 -cp %s;%s -Djava.security.manager=%s Main %s", userCodeParentPath, SECURITY_MANAGER_PATH, SECURITY_MANAGER_CLASS_NAME, inputArgs);
+            String runCmd = String.format("java -Xmx128m -Dfile.encoding=UTF-8 -cp %s;%s -Djava.security.manager=%s Main %s", userCodeParentPath, SECURITY_MANAGER_PATH, SECURITY_MANAGER_CLASS_NAME, inputArgs);
             String osName = System.getProperty("os.name").toLowerCase();
             // 如果是Windows系统，支持安全管理器security-manager的创建，反之是Linux则不支持（可能也支持，但作者暂时因时间原因未找出对策，故出此下策）
             if (osName.contains("nix") || osName.contains("nux"))
             {
-                runCmd = String.format("java -Dfile.encoding=UTF-8 -cp %s Main %s", userCodeParentPath, inputArgs);
+                runCmd = String.format("java -Xmx128m -Dfile.encoding=UTF-8 -cp %s Main %s", userCodeParentPath, inputArgs);
             }
             // String runCmd = String.format("java -Dfile.encoding=UTF-8 -cp %s;%s -Djava.security.manager=%s Main %s", userCodeParentPath, SECURITY_MANAGER_PATH, SECURITY_MANAGER_CLASS_NAME, inputArgs);
             try
