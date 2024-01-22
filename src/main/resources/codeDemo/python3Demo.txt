@@ -4,10 +4,10 @@ def main():
     if len(sys.argv) != 3:
         print("Usage: python calculate.py <a> <b>")
         return
-    a = float(sys.argv[1])
-    b = float(sys.argv[2])
+    a = int(sys.argv[1])
+    b = int(sys.argv[2])
     result = calculate_sum(a, b)
-    print(f"The sum of {a} and {b} is: {result}")
+    print(result)
 def calculate_sum(a, b):
     return a + b
 if __name__ == "__main__":
